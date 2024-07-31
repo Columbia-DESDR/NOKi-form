@@ -10,3 +10,20 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+/* styles.css */
+.form-group {
+  margin-bottom: 2.5rem;
+}
+
+
+
+/* .control-label[for="root_survey_start-key"] {
+  visibility: hidden; 
+}
+.control-label[for="root_survey_start-key"]::before {
+  content: "Question Id"; 
+  font-weight: bold;
+  visibility: visible;
+} */

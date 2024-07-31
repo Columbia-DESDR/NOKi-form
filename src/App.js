@@ -1,165 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Form from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 
-const schema = {
-    title: 'NOKi Form',
-    type: 'object',
-    required: ['surveyName', 'instanceName', 'comments', 'startMsg', 'restartMsg'],
-    properties: {
-        surveyName: { 
-            type: 'string', 
-            title: 'Survey Name', 
-            default: '' 
-        },
-        instanceName: { 
-            type: 'string', 
-            title: 'Instance Name', 
-        },
-        comments: { 
-            type: 'string', 
-            title: 'Comments', 
-            default: 'Type some comment here...' 
-        },
-        startMsg: { 
-            type: 'string', 
-            title: 'Start Message', 
-            default: '' 
-        },
-        restartMsg: { 
-            type: 'string', 
-            title: 'Restart Message', 
-            default: '' 
-        },
-        survey: {
-            type: 'object', 
-            title: 'Survey',
-            properties: {
-                start: {
-                    type: 'object',
-                    title: 'Start',
-                    required: ["type", "msgs", "next"],
-                    properties: {
-                        type: {
-                            type: 'string',
-                            title: 'Data Type',
-                            default: 'var'
-                        },
-                        msgs: {
-                            type: 'array',
-                            title: 'Messages',
-                            items: { type: 'string' }
-                        },
-                        params: {
-                            type: 'object',
-                            title: 'Parameters',
-                            properties: {
-                                varName: {
-                                    type: 'string',
-                                    title: 'Variable Name for message'
-                                },
-                                funcName: {
-                                    type: 'string',
-                                    title: 'Function Name'
-                                },
-                                args: {
-                                    type: 'array',
-                                    title: 'Function Arguments',
-                                    items: { type: 'string' }
-                                }
-                            }
-                        },
-                        next: {
-                            type: 'string',
-                            title: 'Next Block'
-                        }
-                    }
-                },
-                end: {
-                    type: 'object',
-                    title: 'End',
-                    required: ["type", "msgs", "next"],
-                    properties: {
-                        type: {
-                            type: 'string',
-                            title: 'Data Type',
-                            default: 'var'
-                        },
-                        msgs: {
-                            type: 'array',
-                            title: 'Messages',
-                            items: { type: 'string' }
-                        },
-                        params: {
-                            type: 'object',
-                            title: 'Parameters',
-                            properties: {
-                                varName: {
-                                    type: 'string',
-                                    title: 'Variable Name for message'
-                                },
-                                funcName: {
-                                    type: 'string',
-                                    title: 'Function Name'
-                                },
-                                args: {
-                                    type: 'array',
-                                    title: 'Function Arguments',
-                                    items: { type: 'string' }
-                                }
-                            }
-                        },
-                        next: {
-                            type: 'string',
-                            title: 'Next Block'
-                        }
-                    }
-                }
-            },
-            additionalProperties: {
-                type: 'object',
-                required: ["type", "msgs", "next"],
-                properties: {
-                    type: {
-                        type: 'string',
-                        title: 'Data Type',
-                        default: 'var'
-                    },
-                    msgs: {
-                        type: 'array',
-                        title: 'Messages',
-                        items: { type: 'string' }
-                    },
-                    params: {
-                        type: 'object',
-                        title: 'Parameters',
-                        properties: {
-                            varName: {
-                                type: 'string',
-                                title: 'Variable Name for message'
-                            },
-                            funcName: {
-                                type: 'string',
-                                title: 'Function Name'
-                            },
-                            args: {
-                                type: 'array',
-                                title: 'Function Arguments',
-                                items: { type: 'string' }
-                            }
-                        }
-                    },
-                    next: {
-                        type: 'string',
-                        title: 'Next Block'
-                    }
-                }
-            }
-        }
-    },
-};
+const functionNames = [
+    'get_current_date', 'get_from_response', 'ccp_prediction_text'
+];
 
-const formData = {
+const initialFormData = {
     surveyName: 'CCP harvest season followup',
     instanceName: 'Colombia coffee planters',
     comments: 'Colombia coffee planters harvest followup',
@@ -168,45 +15,213 @@ const formData = {
     survey: {
         start: {
             type: 'var',
-            msgs: ['Start of the survey'],
+            msgs: ['Start of the survey. Hi %%name%% %%surname%%'],
             params: {
-                varName: 'startVar',
-                funcName: 'startFunction',
-                args: ['arg1', 'arg2']
+                name: {
+                    function_name: 'startFunction',
+                    args: ['arg1', 'arg2']
+                },
+                surname: {
+                    function_name: 'startFunction',
+                    args: ['arg1', 'arg2']
+                },
             },
-            next: 'nextBlock'
+            next: 'end'
         },
         end: {
             type: 'var',
             msgs: ['End of the survey'],
-            params: {
-                varName: 'endVar',
-                funcName: 'endFunction',
-                args: ['arg1', 'arg2']
-            },
-            next: 'nextBlock'
+            next: ''
         }
-        // Add user-defined sections here
     }
-}
+};
+
+const uiSchema = {
+    "ui:globalOptions": {
+        enableMarkdownInDescription: true,
+        orderable: false,
+    }
+};
+
+const baseSchema = {
+    title: 'NOKi Form',
+    type: 'object',
+    required: ['surveyName', 'instanceName', 'comments', 'startMsg', 'restartMsg'],
+    properties: {
+        instanceName: { type: 'string', title: 'Instance Name', description: 'Enter the specific name for this instance.' },
+        surveyName: { type: 'string', title: 'Survey Name', description: 'Provide the name of the survey.' },
+        comments: { type: 'string', title: 'Comments', description: 'Add any additional comments or notes.' },
+        startMsg: { type: 'string', title: 'Start Message', description: 'This message will initiate this survey process.' },
+        restartMsg: { type: 'string', title: 'Restart Message', description: 'This message will restart this survey process.' },
+        survey: {
+            type: 'object',
+            title: 'Survey Questions',
+            description: "Configure the survey questions with various types and messages.",
+            additionalProperties: {
+                type: 'object',
+                properties: {
+                    type: {
+                        type: 'string',
+                        title: 'Question Type',
+                        description: 'Choose the type of question you want to ask.',
+                        enum: ['var', 'text', 'mcq'],
+                    },
+                    next: {
+                        type: 'string',
+                        title: 'Next Question',
+                        enum: [''] // To be updated dynamically
+                    }
+                },
+                allOf: [
+                    {
+                        if: {
+                            properties: { type: { const: "var" } }
+                        },
+                        then: {
+                            properties: {
+                                msgs: {
+                                    type: 'array',
+                                    title: 'Message',
+                                    items: { type: 'string' }
+                                },
+                                params: {
+                                    type: 'object',
+                                    title: 'Message Variable',
+                                    additionalProperties: {
+                                        type: 'object',
+                                        properties: {
+                                            function_name: {
+                                                type: 'string',
+                                                enum: functionNames
+                                            },
+                                            args: {
+                                                type: 'array',
+                                                items: { type: 'string' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        if: {
+                            properties: { type: { const: "text" } }
+                        },
+                        then: {
+                            properties: {
+                                msgs: {
+                                    type: 'array',
+                                    title: 'Message',
+                                    items: { type: 'string' }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        if: {
+                            properties: { type: { const: "mcq" } }
+                        },
+                        then: {
+                            properties: {
+                                msgs: {
+                                    type: 'array',
+                                    title: 'Message',
+                                    items: { type: 'string' }
+                                },
+                                params: {
+                                    type: 'object',
+                                    title: 'Message Variable',
+                                    additionalProperties: {
+                                        type: 'object',
+                                        properties: {
+                                            function_name: {
+                                                type: 'string',
+                                                enum: functionNames
+                                            },
+                                            args: {
+                                                type: 'array',
+                                                items: { type: 'string' }
+                                            }
+                                        }
+                                    }
+                                },
+                                options: {
+                                    type: "object",
+                                    title: 'MCQ Options',
+                                    additionalProperties: {
+                                        type: "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+};
 
 const App = () => {
+    const [formData, setFormData] = useState(initialFormData);
     const [submittedData, setSubmittedData] = useState(null);
+    const [dynamicSchema, setDynamicSchema] = useState(baseSchema);
 
     const handleSubmit = ({ formData }) => {
-        setSubmittedData(formData);
         console.log('submitted', formData);
+        setSubmittedData(formData)
     };
 
-    return(
+    const extractKeysFromSurvey = (survey) => {
+        return Object.keys(survey);
+    };
+
+    const generateDynamicSchema = () => {
+        const surveyKeys = extractKeysFromSurvey(formData.survey);
+        
+        // Ensure enum properties are non-empty arrays or handle empty cases
+        const nextEnum = surveyKeys.length ? surveyKeys : ['']; // Default empty value to prevent schema errors
+
+        return {
+            ...baseSchema,
+            properties: {
+                ...baseSchema.properties,
+                survey: {
+                    ...baseSchema.properties.survey,
+                    additionalProperties: {
+                        ...baseSchema.properties.survey.additionalProperties,
+                        properties: {
+                            ...baseSchema.properties.survey.additionalProperties.properties,
+                            next: {
+                                type: 'string',
+                                title: 'Next Question',
+                                enum: nextEnum
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    };
+
+    useEffect(() => {
+        setDynamicSchema(generateDynamicSchema());
+    }, [formData]);
+
+    const handleChange = ({ formData }) => {
+        setFormData(formData);
+    };
+
+    return (
         <>
             <Form
-                schema={schema}
+                schema={dynamicSchema}
                 formData={formData}
                 validator={validator}
-                onChange={console.log.bind(console, 'changed')}
+                onChange={handleChange}
                 onSubmit={handleSubmit}
                 onError={console.log.bind(console, 'errors')}
+                uiSchema={uiSchema}
             />
             {submittedData && (
                 <div>
